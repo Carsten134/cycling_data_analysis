@@ -1,5 +1,6 @@
 ## Requirements ################################################################
 library(tidyverse)
+library(hms)
 
 ## Data import #################################################################
 # BEFORE YOU START TO IMPORT THE DATA:
@@ -74,19 +75,30 @@ raw_data$weekend_yes_no <- rep(
 raw_data$month_id <- rep(as.numeric(format(cycling_data$date, "%m")), 4)
 
 number_to_month <- data.frame(id = c(1,2,3,4,5,6,7,8,9,10,11,12),
-                              month_spelled_out = c("Januar",
-                                                    "Februar",
-                                                    "März",
-                                                    "April",
-                                                    "Mai",
-                                                    "Juni",
-                                                    "Juli",
-                                                    "August",
-                                                    "September",
-                                                    "Oktober",
-                                                    "November",
-                                                    "Dezember"))
-
+                              month_spelled_out = factor(c("Januar",
+                                                            "Februar",
+                                                            "März",
+                                                            "April",
+                                                            "Mai",
+                                                            "Juni",
+                                                            "Juli",
+                                                            "August",
+                                                            "September",
+                                                            "Oktober",
+                                                            "November",
+                                                            "Dezember"),
+                                                         levels = c("Januar",
+                                                                    "Februar",
+                                                                    "März",
+                                                                    "April",
+                                                                    "Mai",
+                                                                    "Juni",
+                                                                    "Juli",
+                                                                    "August",
+                                                                    "September",
+                                                                    "Oktober",
+                                                                    "November",
+                                                                    "Dezember")))
 raw_data <- raw_data %>%
   inner_join(number_to_month, by = c("month_id" = "id"))
 
@@ -134,6 +146,10 @@ for(i in 1:length(na_data$id)) {
                                               na_row$counting_station) 
 }
 
+# checking if it worked:
+sum(is.na(raw_data$cycling_count))
+# output: [1] 0
+
 # building datasets ------------------------------------------------------------
 # how many cyclists per day
 daily_cycling_data <- raw_data %>%
@@ -141,8 +157,18 @@ daily_cycling_data <- raw_data %>%
   reframe(date=date,
           month_id = month_id,
           weekend_yes_no = weekend_yes_no,
-          cycling_count = sum(cycling_count)) %>%
+          cycling_count = sum(cycling_count),
+          counting_station = counting_station) %>%
   unique()
+
+# daily mean usage of cycling stations
+time_cycling_data <- raw_data %>%
+  group_by(time, counting_station) %>%
+  reframe(time = as_hms(time),
+          cycling_count = mean(cycling_count),
+          counting_station = counting_station) %>%
+  unique()
+
 
 monthly_cycling_data <- raw_data %>%
   group_by(month_id, counting_station) %>%
@@ -150,6 +176,16 @@ monthly_cycling_data <- raw_data %>%
           month_spelled_out = month_spelled_out,
           cycling_count = sum(cycling_count)) %>%
   unique()
+## Descriptive Metrics #########################################################
+
+summarized_daily_data <- daily_cycling_data %>%
+  group_by(counting_station) %>%
+  reframe(counting_station = counting_station,
+            mean_cyclers_per_day = mean(cycling_count),
+            var_cyclers_per_day = var(cycling_count)) %>%
+  unique()
+
+summarized_daily_data
 
 ## Descriptive plots ###########################################################
 theme_set(theme_minimal())
@@ -169,3 +205,21 @@ monthly_cycling_data %>%
              y = cycling_count,
              fill = counting_station)) + 
   geom_bar(stat = "identity")
+
+monthly_cycling_data %>%
+  ggplot(aes(x = month_id,
+             y = cycling_count,
+             group = counting_station,
+             color = counting_station)) + 
+  geom_line(linewidth = 1)
+
+# plotting daily usage
+
+time_cycling_data %>%
+  ggplot(aes(x = time,
+             y = cycling_count,
+             color = counting_station,
+             group = counting_station)) +
+  geom_line()
+
+
