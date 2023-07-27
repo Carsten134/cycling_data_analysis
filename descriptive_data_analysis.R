@@ -33,24 +33,24 @@ cycling_data[na_d_o,]
 # on the 28th of march in 2021 all counting stations produced NA values for one
 # hour...interesting...
 
-# We will solve this issue by replacing these values with the mean count of cyclers
-# in this time-interval in march. We will see this insertion in the "Data processing"
-# part of this R-File, because it is easier to work with the raw data set built
-# from scratch
+# Insertion can be found in the data processing part. It is easier to work with
+# the raw data.
 
 ## Data processing #############################################################
-# ------------------ keymetrics ------------------------------------------------
+# keymetrics -------------------------------------------------------------------
 n <- length(cycling_data$date)
 
-# ------------------ preprocessing ---------------------------------------------
+# preprocessing ----------------------------------------------------------------
 # correcting false datatypes
 cycling_data$date = as.Date(cycling_data$date, tryFormats = c("%d.%m.%Y"))
 
 # building data set from scratch
 raw_data <- data.frame(id = 1:(4*n))
 
-# adding the date
+# adding the date and time
 raw_data$date <- rep(cycling_data$date, 4)
+raw_data$time <- rep(cycling_data$time, 4)
+
 
 # adding a weekend dummy variable, by repeating the first 7 days 52 times
 # with regard to 96 time-intervals per day and
@@ -74,7 +74,18 @@ raw_data$weekend_yes_no <- rep(
 raw_data$month_id <- rep(as.numeric(format(cycling_data$date, "%m")), 4)
 
 number_to_month <- data.frame(id = c(1,2,3,4,5,6,7,8,9,10,11,12),
-                              month_spelled_out = c("Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"))
+                              month_spelled_out = c("Januar",
+                                                    "Februar",
+                                                    "März",
+                                                    "April",
+                                                    "Mai",
+                                                    "Juni",
+                                                    "Juli",
+                                                    "August",
+                                                    "September",
+                                                    "Oktober",
+                                                    "November",
+                                                    "Dezember"))
 
 raw_data <- raw_data %>%
   inner_join(number_to_month, by = c("month_id" = "id"))
@@ -93,7 +104,37 @@ raw_data$counting_station <- c(rep("Fleher Deich ost stromaufwärts", n),
 # turning counting_station into factor variable
 raw_data$counting_station <- as.factor(raw_data$counting_station)
 
-# ----------------- building datasets ------------------------------------------
+# dealing with NA values -------------------------------------------------------
+
+# because 16 insertions have to be made, it makes sense to define a function to
+# make the code more readable
+
+filtered_mean  <- function(month_id_f, time_f, counting_station_f) {
+  # filtering data after given criteria
+  data <- raw_data %>%
+    filter(month_id == month_id_f,
+           time == time_f,
+           counting_station == counting_station_f)
+  
+  # return the mean of non NA values
+  return(mean(na.omit(data$cycling_count)))
+}
+
+# get NA rows
+na_data <- raw_data %>%
+  filter(is.na(cycling_count))
+
+# insert means in NA rows
+for(i in 1:length(na_data$id)) {
+  na_row <- na_data[i,]
+  id <- na_row$id
+  
+  raw_data$cycling_count[id] <- filtered_mean(na_row$month_id,
+                                              na_row$time,
+                                              na_row$counting_station) 
+}
+
+# building datasets ------------------------------------------------------------
 # how many cyclists per day
 daily_cycling_data <- raw_data %>%
   group_by(date, counting_station) %>%
