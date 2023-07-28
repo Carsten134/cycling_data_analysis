@@ -1,8 +1,12 @@
 ## Requirements ################################################################
+# R version: 4.3.1
 library(tidyverse)
 library(hms)
 
 ## Data import #################################################################
+# NOTE: This will only work if you have the right working directory.
+# If the error: "path does not exist" is thrown, use setwd("C:/your/dir") to fix
+# this issue
 raw_data <- read.csv2("./Data/raw_data.csv",
                       fileEncoding = "utf16")
 
@@ -25,7 +29,7 @@ time_cycling_data <- raw_data %>%
           counting_station = counting_station) %>%
   unique()
 
-
+# monthly accumulated usage
 monthly_cycling_data <- raw_data %>%
   group_by(month_id, counting_station) %>%
   reframe(month_id = month_id,
