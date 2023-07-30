@@ -45,7 +45,29 @@ summarized_daily_data <- daily_cycling_data %>%
             var_cyclers_per_day = var(cycling_count)) %>%
   unique()
 
-summarized_daily_data
+summarized_daily_data_weekend <- daily_cycling_data %>%
+  filter(weekend_yes_no == 1) %>%
+  group_by(counting_station) %>%
+  reframe(counting_station = counting_station,
+        mean_cyclers_on_w_e_per_day = mean(cycling_count),
+        var_cyclers_on_w_e_per_day = var(cycling_count)) %>%
+  unique()
+
+summarized_daily_data_weekday <- daily_cycling_data %>%
+  filter(weekend_yes_no == 0) %>%
+  group_by(counting_station) %>%
+  reframe(counting_station = counting_station,
+          mean_cyclers_on_w_d_per_day = mean(cycling_count),
+          var_cyclers_on_w_d_per_day = var(cycling_count)) %>%
+  unique()
+
+summarized_daily_data <- summarized_daily_data %>%
+  inner_join(summarized_daily_data_weekday,
+             by = "counting_station")
+
+summarized_daily_data <- summarized_daily_data %>%
+  inner_join(summarized_daily_data_weekend,
+             by = "counting_station")
 
 ## Descriptive plots ###########################################################
 theme_set(theme_minimal())
