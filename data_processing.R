@@ -37,6 +37,8 @@ cycling_data[na_d_o,]
 # Insertion can be found in the data processing part. It is easier to work with
 # the raw data.
 
+# checking for outliers can also be found after raw data has been processed
+
 ## Data processing #############################################################
 # keymetrics -------------------------------------------------------------------
 n <- length(cycling_data$date)
@@ -75,30 +77,30 @@ raw_data$weekend_yes_no <- rep(
 raw_data$month_id <- rep(as.numeric(format(cycling_data$date, "%m")), 4)
 
 number_to_month <- data.frame(id = c(1,2,3,4,5,6,7,8,9,10,11,12),
-                              month_spelled_out = factor(c("Januar",
-                                                           "Februar",
+                              month_spelled_out = factor(c("Jan",
+                                                           "Feb",
                                                            "März",
-                                                           "April",
+                                                           "Apr",
                                                            "Mai",
-                                                           "Juni",
-                                                           "Juli",
-                                                           "August",
-                                                           "September",
-                                                           "Oktober",
-                                                           "November",
-                                                           "Dezember"),
-                                                         levels = c("Januar",
-                                                                    "Februar",
+                                                           "Jun",
+                                                           "Jul",
+                                                           "Aug",
+                                                           "Sep",
+                                                           "Okt",
+                                                           "Nov",
+                                                           "Dez"),
+                                                         levels = c("Jan",
+                                                                    "Feb",
                                                                     "März",
-                                                                    "April",
+                                                                    "Apr",
                                                                     "Mai",
-                                                                    "Juni",
-                                                                    "Juli",
-                                                                    "August",
-                                                                    "September",
-                                                                    "Oktober",
-                                                                    "November",
-                                                                    "Dezember")))
+                                                                    "Jun",
+                                                                    "Jul",
+                                                                    "Aug",
+                                                                    "Sep",
+                                                                    "Okt",
+                                                                    "Nov",
+                                                                    "Dez")))
 raw_data <- raw_data %>%
   inner_join(number_to_month, by = c("month_id" = "id"))
 
@@ -129,7 +131,7 @@ filtered_mean  <- function(month_id_f, time_f, counting_station_f) {
            counting_station == counting_station_f)
   
   # return the mean of non NA values
-  return(mean(na.omit(data$cycling_count)))
+  return(round(mean(na.omit(data$cycling_count)), 0))
 }
 
 # get NA rows
@@ -149,6 +151,14 @@ for(i in 1:length(na_data$id)) {
 # checking if it worked:
 sum(is.na(raw_data$cycling_count))
 # output: [1] 0
+
+# checking for outliers
+median_value <- median(raw_data$cycling_count)
+
+outlier_rows <- raw_data %>%
+  filter(cycling_count > 3*median_value)
+
+length(outlier_rows$cycling_count)
 
 ## Storing data ################################################################
 

@@ -36,6 +36,18 @@ monthly_cycling_data <- raw_data %>%
           month_spelled_out = month_spelled_out,
           cycling_count = sum(cycling_count)) %>%
   unique()
+# checking for outliers --------------------------------------------------------
+median_value_day <- median(daily_cycling_data$cycling_count)
+
+outiliers_daily <- daily_cycling_data %>%
+  filter(cycling_count > 3*median_value_day)
+
+length(outiliers_daily$cycling_count)
+# out: [1] 53
+
+max(outiliers_daily$cycling_count)
+# out: [1] 3305
+
 ## Descriptive Metrics #########################################################
 
 summarized_daily_data <- daily_cycling_data %>%
@@ -65,20 +77,31 @@ summarized_daily_data <- summarized_daily_data %>%
   inner_join(summarized_daily_data_weekday,
              by = "counting_station")
 
+# comparing mean and variance between counting stations
+# and filtered by weekend and weekday
 summarized_daily_data <- summarized_daily_data %>%
   inner_join(summarized_daily_data_weekend,
              by = "counting_station")
+
+# Storing for Latex-table
+write.csv2(summarized_daily_data,
+           "variance_and_mean_values.csv",
+           fileEncoding="utf16")
 
 ## Descriptive plots ###########################################################
 theme_set(theme_minimal())
 
 # plotting the daily cycling data (still work in progress)
-daily_cycling_data %>% filter(month_id == 6) %>%
+daily_cycling_data %>%
+  filter(month_id == 2) %>%
   ggplot(aes(x = date,
              y = cycling_count,
              group = counting_station,
-             color = counting_station)) +
-  geom_line(size = 1)
+             color = counting_station,
+             fill = counting_station)) +
+  geom_area() +
+  xlab("Datum") +
+  ylab("Täglicher Fahrradverkehr")
 
 # plotting monthly data
 
@@ -86,14 +109,20 @@ monthly_cycling_data %>%
   ggplot(aes(x = month_spelled_out,
              y = cycling_count,
              fill = counting_station)) + 
-  geom_bar(stat = "identity")
+  geom_bar(stat = "identity") +
+  xlab("Monat") +
+  ylab("Fahrradverkehr")
 
+# to better compare usage over month,
+# because bar stacks the values
 monthly_cycling_data %>%
-  ggplot(aes(x = month_id,
+  ggplot(aes(x = month_spelled_out,
              y = cycling_count,
              group = counting_station,
              color = counting_station)) + 
-  geom_line(linewidth = 1)
+  geom_line(linewidth = 1) +
+  xlab("Monat") +
+  ylab("Fahrradverkehr")
 
 # plotting daily usage
 
@@ -102,6 +131,29 @@ time_cycling_data %>%
              y = cycling_count,
              color = counting_station,
              group = counting_station)) +
-  geom_line()
+  geom_line() +
+  xlab("Uhrzeit") +
+  ylab("Fahrradverkehr")
+
+# plotting distributions after counting station
+
+daily_cycling_data %>%
+  ggplot(aes(x = cycling_count))+
+  geom_density(color = "red",
+               fill = "red",
+               alpha = 0.5) +
+  xlab("Fahrradverkehr") +
+  ylab("Dichte")
+
+
+
+raw_data %>%
+  ggplot(aes(x = cycling_count,
+             group = counting_station,
+             color = counting_station,
+             fill = counting_station))+
+  geom_density(alpha = 0.5) +
+  xlab("Fahrradverkehr") +
+  ylab("Dichte")
 
 
